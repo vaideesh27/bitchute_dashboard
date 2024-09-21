@@ -8,7 +8,7 @@ def video_table(query=""):
         query (str): A string to filter video titles.
     """
     conn = st.connection('bitchute_db', type='sql')
-    videos = conn.query(f'SELECT video_title AS Title, video_upload_date AS Upload_Date, video_info_integrity_score AS Integrity_Score, video_url AS Url, video_channel_url AS Channel_Url, video_views AS Views, video_likes AS Likes, video_dislikes AS Dislikes, video_comments_count AS Comments, video_channel_name AS Channel, CASE WHEN video_hashtags = "[]" THEN "None" ELSE video_hashtags END AS Hashtags FROM videos WHERE video_title LIKE "%{query}%"')
+    videos = conn.query(f'SELECT video_title AS Title, video_upload_date AS Upload_Date, video_info_integrity_score AS Integrity_Score, video_url AS Url, video_channel_url AS Channel_Url, video_views AS Views, video_likes AS Likes, video_dislikes AS Dislikes, video_comments_count AS Comments, video_channel_name AS Channel, CASE WHEN video_hashtags = "[]" THEN "None" ELSE video_hashtags END AS Hashtags FROM videos WHERE video_title LIKE "%{query}%"', ttl = 300)
     event = st.dataframe(videos, on_select='rerun',selection_mode='single-row', column_config = {'Url': None, 'Channel_Url': None, 'Upload_Date': None})
 
     if len(event.selection['rows']):
@@ -25,7 +25,7 @@ def channel_table(query=""):
         query (str): A string to filter video titles.
     """
     conn = st.connection('bitchute_db', type='sql')
-    channels = conn.query(f'SELECT video_channel_name AS Channel, AVG(video_info_integrity_score) AS Integrity_Score, SUM(video_views) AS Views, SUM(video_likes) AS Likes, SUM(video_dislikes) AS Dislikes, SUM(video_comments_count) AS Comments, video_channel_url AS Url FROM videos WHERE video_title LIKE "%{query}%" GROUP BY video_channel_name, video_channel_url')
+    channels = conn.query(f'SELECT video_channel_name AS Channel, AVG(video_info_integrity_score) AS Integrity_Score, SUM(video_views) AS Views, SUM(video_likes) AS Likes, SUM(video_dislikes) AS Dislikes, SUM(video_comments_count) AS Comments, video_channel_url AS Url FROM videos WHERE video_title LIKE "%{query}%" GROUP BY video_channel_name, video_channel_url', ttl = 300)
     event = st.dataframe(channels, on_select='rerun',selection_mode='single-row',column_config = {'Url': st.column_config.LinkColumn(display_text="Open Channel Url")})
     
     if len(event.selection['rows']):
@@ -43,7 +43,7 @@ def video_data_vs_score(label, query=""):
         query (str): A string to filter video titles.
     """
     conn = st.connection('bitchute_db', type='sql')
-    data = conn.query(f'SELECT video_views AS Views, video_likes AS Likes, video_dislikes AS Dislikes, video_comments_count AS Comments, video_info_integrity_score AS Integrity_Score FROM videos WHERE video_title LIKE "%{query}%"')
+    data = conn.query(f'SELECT video_views AS Views, video_likes AS Likes, video_dislikes AS Dislikes, video_comments_count AS Comments, video_info_integrity_score AS Integrity_Score FROM videos WHERE video_title LIKE "%{query}%"', ttl = 300)
     st.scatter_chart(data, x=label, y="Integrity_Score")
 
 def videos_vs_integrity(query=""):
@@ -54,7 +54,7 @@ def videos_vs_integrity(query=""):
         query (str): A string to filter video titles.
     """
     conn = st.connection('bitchute_db', type='sql')
-    data = conn.query(f'SELECT CASE WHEN video_info_integrity_score BETWEEN 1 AND 25 THEN "1-25" WHEN video_info_integrity_score BETWEEN 26 AND 50 THEN "26-50" WHEN video_info_integrity_score BETWEEN 51 AND 75 THEN "51-75" WHEN video_info_integrity_score BETWEEN 76 AND 100 THEN "76-100" END AS Integrity_Score, COUNT(*) AS Videos_Count FROM videos WHERE video_title LIKE "%{query}%" GROUP BY Integrity_Score ORDER BY Integrity_Score;')
+    data = conn.query(f'SELECT CASE WHEN video_info_integrity_score BETWEEN 1 AND 25 THEN "1-25" WHEN video_info_integrity_score BETWEEN 26 AND 50 THEN "26-50" WHEN video_info_integrity_score BETWEEN 51 AND 75 THEN "51-75" WHEN video_info_integrity_score BETWEEN 76 AND 100 THEN "76-100" END AS Integrity_Score, COUNT(*) AS Videos_Count FROM videos WHERE video_title LIKE "%{query}%" GROUP BY Integrity_Score ORDER BY Integrity_Score;', ttl = 300)
     st.bar_chart(data, x = "Integrity_Score", y="Videos_Count")
 
 def channels_vs_integrity(query=""):
@@ -65,7 +65,7 @@ def channels_vs_integrity(query=""):
         query (str): A string to filter video titles.
     """
     conn = st.connection('bitchute_db', type='sql')
-    data = conn.query(f'SELECT Integrity_Score, COUNT(*) AS Channels_Count FROM (SELECT CASE WHEN Integrity_Score BETWEEN 1 AND 25 THEN "1-25" WHEN Integrity_Score BETWEEN 26 AND 50 THEN "26-50" WHEN Integrity_Score BETWEEN 51 AND 75 THEN "51-75" WHEN Integrity_Score BETWEEN 76 AND 100 THEN "76-100" END AS Integrity_Score, COUNT(*) AS Channels_Count FROM (SELECT video_channel_name AS Channel, AVG(video_info_integrity_score) AS Integrity_Score, SUM(video_views) AS Views, SUM(video_likes) AS Likes, SUM(video_dislikes) AS Dislikes, SUM(video_comments_count) AS Comments, video_channel_url AS Url FROM videos WHERE video_title LIKE "%{query}%" GROUP BY video_channel_name, video_channel_url) GROUP BY Integrity_Score ORDER BY Integrity_Score) GROUP BY Integrity_Score;')
+    data = conn.query(f'SELECT Integrity_Score, COUNT(*) AS Channels_Count FROM (SELECT CASE WHEN Integrity_Score BETWEEN 1 AND 25 THEN "1-25" WHEN Integrity_Score BETWEEN 26 AND 50 THEN "26-50" WHEN Integrity_Score BETWEEN 51 AND 75 THEN "51-75" WHEN Integrity_Score BETWEEN 76 AND 100 THEN "76-100" END AS Integrity_Score, COUNT(*) AS Channels_Count FROM (SELECT video_channel_name AS Channel, AVG(video_info_integrity_score) AS Integrity_Score, SUM(video_views) AS Views, SUM(video_likes) AS Likes, SUM(video_dislikes) AS Dislikes, SUM(video_comments_count) AS Comments, video_channel_url AS Url FROM videos WHERE video_title LIKE "%{query}%" GROUP BY video_channel_name, video_channel_url) GROUP BY Integrity_Score ORDER BY Integrity_Score) GROUP BY Integrity_Score;', ttl = 300)
     st.bar_chart(data, x = "Integrity_Score", y="Channels_Count")
 
 def views_vs_likes_vs_integrity(query=""):
@@ -76,7 +76,7 @@ def views_vs_likes_vs_integrity(query=""):
         query (str): A string to filter video titles.
     """
     conn = st.connection('bitchute_db', type='sql')
-    data = conn.query(f'SELECT CASE WHEN video_info_integrity_score BETWEEN 1 AND 25 THEN "1-25" WHEN video_info_integrity_score BETWEEN 26 AND 50 THEN "26-50" WHEN video_info_integrity_score BETWEEN 51 AND 75 THEN "51-75" WHEN video_info_integrity_score BETWEEN 76 AND 100 THEN "76-100" END AS Integrity_Score, SUM(video_views) AS Total_Views, SUM(video_likes) AS Total_Likes FROM videos WHERE video_title LIKE "%{query}%" GROUP BY Integrity_Score ORDER BY Integrity_Score;')
+    data = conn.query(f'SELECT CASE WHEN video_info_integrity_score BETWEEN 1 AND 25 THEN "1-25" WHEN video_info_integrity_score BETWEEN 26 AND 50 THEN "26-50" WHEN video_info_integrity_score BETWEEN 51 AND 75 THEN "51-75" WHEN video_info_integrity_score BETWEEN 76 AND 100 THEN "76-100" END AS Integrity_Score, SUM(video_views) AS Total_Views, SUM(video_likes) AS Total_Likes FROM videos WHERE video_title LIKE "%{query}%" GROUP BY Integrity_Score ORDER BY Integrity_Score;', ttl = 300)
     st.scatter_chart(data, x = "Total_Likes", y="Total_Views", color = "Integrity_Score")
 
 def render_search(query=""):
